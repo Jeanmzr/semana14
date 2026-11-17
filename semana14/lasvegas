@@ -1,0 +1,80 @@
+import random
+import time
+R = 0.5
+PI = 3.14159
+REPS = 5    
+def en_circulo(x, y):
+    return x * x + y * y < R * R
+
+def punto():
+    return random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
+
+def monte_carlo(n):
+    dentro = 0
+    for _ in range(n):
+        x, y = punto()
+        if en_circulo(x, y):
+            dentro += 1
+    return 4 * dentro / n
+
+def las_vegas(k):
+    dentro = 0
+    total = 0
+    while dentro < k:
+        x, y = punto()
+        total += 1
+        if en_circulo(x, y):
+            dentro += 1
+    return 4 * k / total, total
+
+def medir_mc(n):
+    error = 0
+    tiempo = 0
+    for _ in range(REPS):
+        ini = time.perf_counter()
+        est = monte_carlo(n)
+        tiempo += time.perf_counter() - ini
+        error += abs(est - PI)
+    return est, error / REPS, tiempo / REPS
+
+def medir_lv(k):
+    error = 0
+    tiempo = 0
+    puntos = 0
+    for _ in range(REPS):
+        ini = time.perf_counter()
+        est, total = las_vegas(k)
+        tiempo += time.perf_counter() - ini
+        error += abs(est - PI)
+        puntos += total
+    return est, error / REPS, tiempo / REPS, puntos / REPS
+
+def main():
+    lista_n = [100, 1_000, 10_000, 100_000, 1_000_000]
+    lista_k = [78, 785, 7_854, 78_540, 785_398]   
+    print(f"Se repiten las preubas {REPS} veces\n")
+    print("Monte Carlo (N puntos fijos, resultado aproximado)")
+    print(f"{'N':>10} {'tt estimado':>12} {'error':>10} {'tiempo (s)':>11}")
+    res_mc = []
+    for n in lista_n:
+        est, error, tiempo = medir_mc(n)
+        res_mc.append((error, tiempo))
+        print(f"{n:>10} {est:>12.5f} {error:>10.5f} {tiempo:>11.4f}")
+
+    print("\nLas Vegas (K puntos dentro, tiempo aleatorio)")
+    print(f"{'K':>10} {'tt estimado':>12} {'error':>10} {'tiempo (s)':>11} {'puntos':>12}")
+    res_lv = []
+    for k in lista_k:
+        est, error, tiempo, puntos = medir_lv(k)
+        res_lv.append((error, tiempo))
+        print(f"{k:>10} {est:>12.5f} {error:>10.5f} {tiempo:>11.4f} {puntos:>12.0f}")
+
+    print("\nComparando ambos)")
+    print(f"{'N':>10} {'K':>10} {'dif. error':>11} {'dif. tiempo':>12}")
+    for pos in range(len(lista_n)):
+        dif_error = res_mc[pos][0] - res_lv[pos][0]
+        dif_tiempo = res_mc[pos][1] - res_lv[pos][1]
+        print(f"{lista_n[pos]:>10} {lista_k[pos]:>10} {dif_error:>11.5f} {dif_tiempo:>12.4f}")
+    print("(dif = Monte Carlo - Las Vegas)")
+if __name__ == "__main__":
+    main()
